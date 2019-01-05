@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/3d0c/gmf"
-	"github.com/SMerrony/tello"
+	"github.com/Anty0/tello"
 	"github.com/mattn/go-gtk/gdk"
 	"github.com/mattn/go-gtk/gdkpixbuf"
 	"github.com/mattn/go-gtk/glib"

@@ -15,7 +15,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/SMerrony/tello"
+	"github.com/Anty0/tello"
 	"github.com/mattn/go-gtk/gdkpixbuf"
 	"github.com/mattn/go-gtk/glib"
 	"github.com/mattn/go-gtk/gtk"

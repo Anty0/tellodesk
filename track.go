@@ -20,7 +20,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/SMerrony/tello"
+	"github.com/Anty0/tello"
 	"github.com/mattn/go-gtk/gtk"
 )
 

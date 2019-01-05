@@ -16,7 +16,7 @@ import (
 
 	"github.com/mattn/go-gtk/gtk"
 
-	"github.com/SMerrony/tello"
+	"github.com/Anty0/tello"
 	"github.com/simulatedsimian/joystick"
 )
 
