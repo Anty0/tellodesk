@@ -130,7 +130,7 @@ var (
 			Buttons: []uint{btnLand: 2, btnTakeoff: 3, btnTakePhoto: 0, btnSetHome: 4, btnReturnHome: 5, btnCancelAuto: 10},
 		},
 		JoystickConfig{
-			Name:    "Steam Controller (Linux kernel driver)",
+			Name:    "Steam Controller (Linux kernel driver)", // Steam Controller mapping tested with Linux kernel driver added in Linux 4.18.
 			JsType:  typeGameController,
 			Axes:    []int{axLeftX: 0, axLeftY: 1, axRightX: 2, axRightY: 3},
 			Buttons: []uint{btnLand: 2, btnTakeoff: 5, btnTakePhoto: 4, btnSetHome: 1, btnReturnHome: 0, btnCancelAuto: 13},
