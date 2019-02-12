@@ -157,7 +157,7 @@ func stopRecordingVideoCB() {
 		// Timeout happened first, kill the process and print a message.
 		videoConverter.Process.Kill()
 		log.Println("Failed to gracefully interrupt video converter")
-	case err := <-videoConverterDone:
+	case <-videoConverterDone:
 		// Convertor exited before timeout
 	}
 
