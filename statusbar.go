@@ -15,13 +15,13 @@ import (
 )
 
 type statusBarT struct {
-	*gtk.HBox
+	*gtk.VBox
 	connectionLab, heightLab, batteryPctLab, wifiStrLab, photosLab *gtk.Label
 }
 
 func buildStatusbar() (sb *statusBarT) {
 	sb = new(statusBarT)
-	sb.HBox = gtk.NewHBox(false, 2)
+	sb.VBox = gtk.NewVBox(false, 2)
 
 	clf := gtk.NewFrame("")
 	sb.connectionLab = gtk.NewLabel("Disconnected") //NewFixedLabel(" Disconnected ", color.RGBA{255, 255, 255, 255})

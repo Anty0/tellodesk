@@ -28,9 +28,10 @@ func fdListener() {
 			if tmpFd.OnGround {
 				log.Println("On Ground")
 			}
-			if tmpFd.LightStrength == 0 {
-				liveTrack.addPositionIfChanged(tmpFd)
-			}
+			// if tmpFd.LightStrength == 0 {
+			// 	liveTrack.addPositionIfChanged(tmpFd)
+			// }
+			liveTrack.addPositionIfChanged(tmpFd)
 		case <-fdStopChan:
 			return
 		}

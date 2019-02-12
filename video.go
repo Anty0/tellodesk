@@ -9,9 +9,12 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"image"
 	"log"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -24,15 +27,22 @@ import (
 )
 
 const (
-	normalVideoWidth, normalVideoHeight = 960, 720
-	wideVideoWidth, wideVideoHeight     = 1280, 720
+	videoScale                          = 1.4125
+	normalVideoWidth, normalVideoHeight = (int)(960 * videoScale), (int)(720 * videoScale)
+	wideVideoWidth, wideVideoHeight     = (int)(1280 * videoScale), (int)(720 * videoScale)
 )
 
 var (
-	videoRecMu     sync.RWMutex
+	videoRecMu sync.RWMutex
+
 	videoRecording bool
-	videoFile      *os.File
+
+	//videoFile   *os.File
+	videoConverter *exec.Cmd
 	videoWriter    *bufio.Writer
+
+	// soundFile      *os.File
+	// soundWriter    *bufio.Writer
 )
 
 type videoWgtT struct {
@@ -66,42 +76,94 @@ func (wgt *videoWgtT) clearMessage() {
 }
 
 func recordVideoCB() {
-	var vidPath string
-	fs := gtk.NewFileChooserDialog(
-		"Save Video Recording to...",
-		win,
-		gtk.FILE_CHOOSER_ACTION_SAVE, "_Cancel", gtk.RESPONSE_CANCEL, "_Save", gtk.RESPONSE_ACCEPT)
-	fs.SetCurrentFolder(settings.DataDir)
-	ff := gtk.NewFileFilter()
-	ff.AddPattern("*.h264")
-	fs.SetFilter(ff)
-	res := fs.Run()
-	if res == gtk.RESPONSE_ACCEPT {
-		vidPath = fs.GetFilename()
-		if vidPath != "" {
-			var err error
-			videoFile, err = os.OpenFile(vidPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
-			if err != nil {
-				messageDialog(win, gtk.MESSAGE_INFO, "Could not create video file.")
-			} else {
-				videoWriter = bufio.NewWriter(videoFile)
-				videoRecMu.Lock()
-				videoRecording = true
-				videoRecMu.Unlock()
-				menuBar.recVidItem.SetSensitive(false)
-				menuBar.stopRecVidItem.SetSensitive(true)
-			}
-		}
+	// var vidPath string
+	// fs := gtk.NewFileChooserDialog(
+	// 	"Save Video Recording to...",
+	// 	win,
+	// 	gtk.FILE_CHOOSER_ACTION_SAVE, "_Cancel", gtk.RESPONSE_CANCEL, "_Save", gtk.RESPONSE_ACCEPT)
+	// fs.SetCurrentFolder(settings.DataDir)
+	// ff := gtk.NewFileFilter()
+	// ff.AddPattern("*.h264")
+	// fs.SetFilter(ff)
+	// res := fs.Run()
+	// if res == gtk.RESPONSE_ACCEPT {
+	// 	vidPath = fs.GetFilename()
+	// 	if vidPath != "" {
+	// 		var err error
+	// 		videoFile, err = os.OpenFile(vidPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
+	// 		if err != nil {
+	// 			messageDialog(win, gtk.MESSAGE_INFO, "Could not create video file.")
+	// 		} else {
+	// 			videoWriter = bufio.NewWriter(videoFile)
+
+	// 			// soundFile, err = os.OpenFile(vidPath+".wav", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
+	// 			// if err != nil {
+	// 			// 	messageDialog(win, gtk.MESSAGE_INFO, "Could not create sound file.")
+	// 			// } else {
+	// 			// 	soundWriter = bufio.NewWriter(soundFile)
+
+	// 			videoRecMu.Lock()
+	// 			videoRecording = true
+	// 			videoRecMu.Unlock()
+	// 			menuBar.recVidItem.SetSensitive(false)
+	// 			menuBar.stopRecVidItem.SetSensitive(true)
+	// 			// }
+	// 		}
+	// 	}
+	// }
+	// fs.Destroy()
+
+	videoFilename := fmt.Sprintf("%s%ctello_vid_%s", settings.DataDir, filepath.Separator, time.Now().Format(time.RFC3339))
+	videoConverter = exec.Command("bash", "-c", "ffmpeg -i <(arecord) -i - -r 60 -vcodec copy -acodec copy \""+videoFilename+".avi\"")
+
+	converterIn, err := videoConverter.StdinPipe()
+	if err != nil {
+		messageDialog(win, gtk.MESSAGE_INFO, "Could not prepare video converter.")
+		return
 	}
-	fs.Destroy()
+
+	err = videoConverter.Start()
+	if err != nil {
+		messageDialog(win, gtk.MESSAGE_INFO, "Could not start video converter.")
+		return
+	}
+
+	videoWriter = bufio.NewWriter(converterIn)
+
+	videoRecMu.Lock()
+	videoRecording = true
+	videoRecMu.Unlock()
+
+	menuBar.recVidItem.SetSensitive(false)
+	menuBar.stopRecVidItem.SetSensitive(true)
 }
 
 func stopRecordingVideoCB() {
 	videoRecMu.Lock()
 	videoRecording = false
 	videoRecMu.Unlock()
+
 	videoWriter.Flush()
-	videoFile.Close()
+	// videoFile.Close()
+	videoConverter.Process.Signal(os.Interrupt)
+
+	videoConverterDone := make(chan error)
+	go func() { videoConverterDone <- videoConverter.Wait() }()
+
+	videoConverterTimeout := time.After(15 * time.Second)
+
+	select {
+	case <-videoConverterTimeout:
+		// Timeout happened first, kill the process and print a message.
+		videoConverter.Process.Kill()
+		log.Println("Failed to gracefully interrupt video converter")
+	case err := <-videoConverterDone:
+		// Convertor exited before timeout
+	}
+
+	// soundWriter.Flush()
+	// soundFile.Close()
+
 	menuBar.recVidItem.SetSensitive(true)
 	menuBar.stopRecVidItem.SetSensitive(false)
 }
@@ -284,6 +346,7 @@ func (wgt *videoWgtT) updateFeed() bool {
 		pbd.Data = wgt.feedImage.Pix
 
 		pb := gdkpixbuf.NewPixbufFromData(pbd)
+		//pb = pb.ScaleSimple(videoWidth, videoHeight, gdkpixbuf.INTERP_BILINEAR)
 		videoWgt.image.SetFromPixbuf(pb)
 
 		wgt.newFeedImage = false

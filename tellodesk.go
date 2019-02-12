@@ -80,23 +80,30 @@ func main() {
 	win = gtk.NewWindow(gtk.WINDOW_TOPLEVEL)
 	win.SetTitle(appName)
 	win.SetIcon(iconPixbuf)
+
 	getSettings()
 	if settings.WideVideo {
 		videoWidth, videoHeight = wideVideoWidth, wideVideoHeight
-		blueSkyPixbuf = blueSkyPixbuf.ScaleSimple(videoWidth, videoHeight, gdkpixbuf.INTERP_BILINEAR)
 	}
-	win.SetResizable(false) // Gtk does the right thing and sets the size after laying out
+	blueSkyPixbuf = blueSkyPixbuf.ScaleSimple(videoWidth, videoHeight, gdkpixbuf.INTERP_BILINEAR)
+
+	win.SetResizable(true) // Gtk does the right thing and sets the size after laying out
 	win.Connect("destroy", func() {
 		exitNicely()
 	})
 
-	vbox := gtk.NewVBox(false, 0)
+	hbox := gtk.NewHBox(false, 0)
 
 	menuBar = buildMenu()
-	vbox.PackStart(menuBar, false, false, 0)
+	menuBar.SetPackDirection(gtk.PACK_DIRECTION_TTB)
+	hbox.PackStart(menuBar, false, false, 0)
+
+	statusBar = buildStatusbar()
+	hbox.PackStart(statusBar, false, false, 0)
 
 	notebook = gtk.NewNotebook()
-	vbox.PackStart(notebook, false, false, 1)
+	notebook.SetTabPos(gtk.POS_LEFT)
+	hbox.PackStart(notebook, false, false, 1)
 
 	videoWgt = buildVideodWgt()
 	videoPage = notebook.AppendPage(videoWgt, gtk.NewLabel("Live Feed"))
@@ -113,15 +120,13 @@ func main() {
 	profileChart = buildProfileChart(videoWidth, videoHeight)
 	profilePage = notebook.AppendPage(profileChart, gtk.NewLabel("Profile"))
 
-	statusBar = buildStatusbar()
-	vbox.PackEnd(statusBar, false, false, 0)
 	glib.TimeoutAdd(statusUpdatePeriodMs, func() bool {
 		statusBar.updateStatusBarTCB()
 		return true
 	})
 	glib.TimeoutAdd(statusUpdatePeriodMs, updateFlightDataTCB)
 
-	win.Add(vbox)
+	win.Add(hbox)
 	win.ShowAll()
 	gtk.Main()
 }

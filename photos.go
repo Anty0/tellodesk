@@ -22,7 +22,7 @@ func takePhotoCB() {
 
 func saveAllPhotosCB() {
 	n, err := drone.SaveAllPics(fmt.Sprintf("%s%ctello_pic_%s",
-		settings.DataDir, filepath.Separator, time.Now().Format("2006Jan2150405")))
+		settings.DataDir, filepath.Separator, time.Now().Format(time.RFC3339))) // time.Now().Format("2006Jan2150405")
 	if err != nil {
 		log.Printf("Error saving photos: %s", err.Error())
 		messageDialog(win, gtk.MESSAGE_ERROR, err.Error())

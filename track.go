@@ -87,7 +87,7 @@ func (tt *telloTrackT) addPositionIfChanged(fd tello.FlightData) {
 	newPos.imuYaw = fd.IMU.Yaw
 
 	if len(tt.positions) == 0 {
-		if newPos.heightDm != 0 && newPos.mvoX != 0 && newPos.mvoY != 0 {
+		if newPos.heightDm != 0 || newPos.mvoX != 0 || newPos.mvoY != 0 {
 			tt.trackMu.Lock()
 			tt.positions = append(tt.positions, newPos)
 			tt.trackMu.Unlock()
