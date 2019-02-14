@@ -65,13 +65,13 @@ func (sb *statusBarT) updateStatusBarTCB() {
 	if flightData.BatteryPercentage < 30 {
 		sb.batteryPctLab.ModifyFG(gtk.STATE_NORMAL, gdk.NewColor("red"))
 	} else {
-		sb.batteryPctLab.ModifyFG(gtk.STATE_NORMAL, gdk.NewColor("black"))
+		sb.batteryPctLab.ModifyFG(gtk.STATE_NORMAL, gdk.NewColor("white"))
 	}
 	sb.wifiStrLab.SetLabel(fmt.Sprintf("Wifi: %d%% - Interference: %d%%", flightData.WifiStrength, flightData.WifiInterference))
 	if flightData.WifiStrength < 50 {
 		sb.wifiStrLab.ModifyFG(gtk.STATE_NORMAL, gdk.NewColor("red"))
 	} else {
-		sb.wifiStrLab.ModifyFG(gtk.STATE_NORMAL, gdk.NewColor("black"))
+		sb.wifiStrLab.ModifyFG(gtk.STATE_NORMAL, gdk.NewColor("white"))
 	}
 	flightDataMu.RUnlock()
 	sb.photosLab.SetLabel(fmt.Sprintf("Buffered Photos: %d", drone.NumPics()))

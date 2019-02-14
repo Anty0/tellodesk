@@ -45,6 +45,9 @@ to the Tello network.`)
 	fdChan, _ = drone.StreamFlightData(false, fdPeriodMs)
 	go fdListener()
 
+	// TODO: test SetMaxHeight
+	//drone.SetMaxHeight(30) // Set max height to 30
+
 	// ask for drone data not normally sent
 	drone.GetLowBatteryThreshold()
 	drone.GetMaxHeight()

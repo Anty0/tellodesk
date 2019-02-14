@@ -72,7 +72,7 @@ const (
 	maxVal   = 32767
 )
 
-const jsUpdatePeriod = 40 * time.Millisecond // 40ms = 25Hz
+const jsUpdatePeriod = 20 * time.Millisecond // 40ms = 25Hz
 
 // JoystickConfig holds a known joystick configuration
 type JoystickConfig struct {
@@ -260,7 +260,12 @@ func readJoystick(test bool) {
 		sm                 tello.StickMessage
 		jsState, prevState joystick.State
 		err                error
+
+		updateTime int64
 	)
+
+	updateTime = time.Now().UnixNano()
+
 	log.Println("Debug: Joystick listener starting")
 	for {
 		jsState, err = js.Read()
@@ -347,6 +352,12 @@ func readJoystick(test bool) {
 			log.Printf("JS: Lx: %d, Ly: %d, Rx: %d=>%d, Ry: %d\n", sm.Lx, sm.Ly, jsState.AxisData[jsConfig.Axes[axRightX]], sm.Rx, sm.Ry)
 		} else {
 			stickChan <- sm
+
+			newUpdateTime := time.Now().UnixNano()
+			if newUpdateTime-updateTime > (int64)(jsUpdatePeriod*3) {
+				log.Println("WARNING: Long control delay detected!")
+			}
+			updateTime = newUpdateTime
 		}
 
 		if jsState.Buttons&(1<<jsConfig.Buttons[btnTakePhoto]) != 0 && prevState.Buttons&(1<<jsConfig.Buttons[btnTakePhoto]) == 0 {

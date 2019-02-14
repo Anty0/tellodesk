@@ -8,11 +8,13 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"image"
+
+	"io"
 	"log"
 	"os"
+
 	"os/exec"
 	"path/filepath"
 	"sync"
@@ -20,6 +22,8 @@ import (
 
 	"github.com/3d0c/gmf"
 	"github.com/Anty0/tello"
+
+	// "github.com/eapache/channels"
 	"github.com/mattn/go-gtk/gdk"
 	"github.com/mattn/go-gtk/gdkpixbuf"
 	"github.com/mattn/go-gtk/glib"
@@ -27,7 +31,7 @@ import (
 )
 
 const (
-	videoScale                          = 1.4125
+	videoScale                          = 1.45 //1.4125
 	normalVideoWidth, normalVideoHeight = (int)(960 * videoScale), (int)(720 * videoScale)
 	wideVideoWidth, wideVideoHeight     = (int)(1280 * videoScale), (int)(720 * videoScale)
 )
@@ -37,12 +41,12 @@ var (
 
 	videoRecording bool
 
-	//videoFile   *os.File
+	//videoFile *os.File
 	videoConverter *exec.Cmd
-	videoWriter    *bufio.Writer
+	videoWriter    io.WriteCloser
 
-	// soundFile      *os.File
-	// soundWriter    *bufio.Writer
+	// videoPlayChan   channels.NativeChannel //<-chan []byte
+	// videoRecordChan channels.NativeChannel //<-chan []byte
 )
 
 type videoWgtT struct {
@@ -76,47 +80,25 @@ func (wgt *videoWgtT) clearMessage() {
 }
 
 func recordVideoCB() {
-	// var vidPath string
-	// fs := gtk.NewFileChooserDialog(
-	// 	"Save Video Recording to...",
-	// 	win,
-	// 	gtk.FILE_CHOOSER_ACTION_SAVE, "_Cancel", gtk.RESPONSE_CANCEL, "_Save", gtk.RESPONSE_ACCEPT)
-	// fs.SetCurrentFolder(settings.DataDir)
-	// ff := gtk.NewFileFilter()
-	// ff.AddPattern("*.h264")
-	// fs.SetFilter(ff)
-	// res := fs.Run()
-	// if res == gtk.RESPONSE_ACCEPT {
-	// 	vidPath = fs.GetFilename()
-	// 	if vidPath != "" {
-	// 		var err error
-	// 		videoFile, err = os.OpenFile(vidPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
-	// 		if err != nil {
-	// 			messageDialog(win, gtk.MESSAGE_INFO, "Could not create video file.")
-	// 		} else {
-	// 			videoWriter = bufio.NewWriter(videoFile)
-
-	// 			// soundFile, err = os.OpenFile(vidPath+".wav", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
-	// 			// if err != nil {
-	// 			// 	messageDialog(win, gtk.MESSAGE_INFO, "Could not create sound file.")
-	// 			// } else {
-	// 			// 	soundWriter = bufio.NewWriter(soundFile)
-
-	// 			videoRecMu.Lock()
-	// 			videoRecording = true
-	// 			videoRecMu.Unlock()
-	// 			menuBar.recVidItem.SetSensitive(false)
-	// 			menuBar.stopRecVidItem.SetSensitive(true)
-	// 			// }
-	// 		}
-	// 	}
-	// }
-	// fs.Destroy()
-
 	videoFilename := fmt.Sprintf("%s%ctello_vid_%s", settings.DataDir, filepath.Separator, time.Now().Format(time.RFC3339))
-	videoConverter = exec.Command("bash", "-c", "ffmpeg -i <(arecord) -i - -r 60 -vcodec copy -acodec copy \""+videoFilename+".avi\"")
+	//videoConverter = exec.Command("bash", "-c", "ffmpeg -i <(arecord) -i - -r 60 -vcodec copy -acodec copy \""+videoFilename+".avi\"")
+	//videoConverter = exec.Command("ffmpeg", "-f", "pulse", "-i", "default", "-i", "-", "-r", "60", "-filter:v", "setpts=0.95*PTS", "-vcodec", "copy", "-acodec", "copy", videoFilename+".avi")
+	//videoConverter = exec.Command("ffmpeg", "-f", "pulse", "-i", "default", "-i", "-", "-r", "60", "-vcodec", "copy", "-acodec", "copy", videoFilename+".avi")
+	//videoConverter = exec.Command("ffmpeg", "-f", "pulse", "-i", "default", "-i", "-", "-r", "60", "-filter:a", "atempo=0.8", "-vcodec", "copy", videoFilename+".avi")
+	//videoConverter = exec.Command("ffmpeg", "-f", "pulse", "-i", "default", "-i", "-", "-r", "60", "-af", "aresample=async=1:first_pts=0", "-vcodec", "copy", videoFilename+".avi")
+	//videoConverter = exec.Command("ffmpeg", "-f", "pulse", "-itsoffset", "1.0", "-i", "default", "-r", "30", "-i", "-", "-af", "aresample=async=1:first_pts=0", "-vcodec", "copy", videoFilename+".avi")
+	videoConverter = exec.Command("ffmpeg", "-f", "pulse", "-i", "default", "-r", "30", "-i", "-", "-af", "aresample=async=1:first_pts=0", "-vcodec", "copy", videoFilename+".avi")
 
-	converterIn, err := videoConverter.StdinPipe()
+	var err error
+
+	// videoFile, err = os.OpenFile(videoFilename+".h264", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
+	// if err != nil {
+	// 	messageDialog(win, gtk.MESSAGE_INFO, "Could not create video file.")
+	// 	return
+	// }
+	// videoWriter = bufio.NewWriter(videoFile)
+
+	videoWriter, err = videoConverter.StdinPipe()
 	if err != nil {
 		messageDialog(win, gtk.MESSAGE_INFO, "Could not prepare video converter.")
 		return
@@ -128,7 +110,9 @@ func recordVideoCB() {
 		return
 	}
 
-	videoWriter = bufio.NewWriter(converterIn)
+	// videoRecordChan = channels.NewNativeChannel(4096) // make(chan []byte, 4096)
+	// videoPlayChan = channels.NewNativeChannel(256)    // make(chan []byte, 256)
+	// channels.Tee(channels.Wrap(videoChan), videoPlayChan, videoRecordChan)
 
 	videoRecMu.Lock()
 	videoRecording = true
@@ -143,8 +127,8 @@ func stopRecordingVideoCB() {
 	videoRecording = false
 	videoRecMu.Unlock()
 
-	videoWriter.Flush()
-	// videoFile.Close()
+	videoWriter.Close()
+
 	videoConverter.Process.Signal(os.Interrupt)
 
 	videoConverterDone := make(chan error)
@@ -160,9 +144,6 @@ func stopRecordingVideoCB() {
 	case <-videoConverterDone:
 		// Convertor exited before timeout
 	}
-
-	// soundWriter.Flush()
-	// soundFile.Close()
 
 	menuBar.recVidItem.SetSensitive(true)
 	menuBar.stopRecVidItem.SetSensitive(false)
@@ -212,7 +193,7 @@ func customReader() ([]byte, int) {
 	}
 	videoRecMu.RLock()
 	if videoRecording {
-		videoWriter.Write(pkt)
+		go videoWriter.Write(pkt)
 	}
 	videoRecMu.RUnlock()
 	return pkt, len(pkt)

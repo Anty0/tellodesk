@@ -80,6 +80,7 @@ func main() {
 	win = gtk.NewWindow(gtk.WINDOW_TOPLEVEL)
 	win.SetTitle(appName)
 	win.SetIcon(iconPixbuf)
+	win.SetDecorated(false) // hide border
 
 	getSettings()
 	if settings.WideVideo {
