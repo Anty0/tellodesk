@@ -23,7 +23,6 @@ import (
 	"github.com/3d0c/gmf"
 	"github.com/Anty0/tello"
 
-	// "github.com/eapache/channels"
 	"github.com/mattn/go-gtk/gdk"
 	"github.com/mattn/go-gtk/gdkpixbuf"
 	"github.com/mattn/go-gtk/glib"
@@ -34,19 +33,27 @@ const (
 	videoScale                          = 1.45 //1.4125
 	normalVideoWidth, normalVideoHeight = (int)(960 * videoScale), (int)(720 * videoScale)
 	wideVideoWidth, wideVideoHeight     = (int)(1280 * videoScale), (int)(720 * videoScale)
+
+	packetQueueLimit = 5000
 )
 
+type videoPacket struct {
+	packet []byte
+	next   *videoPacket
+}
+
 var (
-	videoRecMu sync.RWMutex
+	videoRecMu      sync.RWMutex
+	videoWriteRecMu sync.RWMutex
 
 	videoRecording bool
 
-	//videoFile *os.File
 	videoConverter *exec.Cmd
 	videoWriter    io.WriteCloser
 
-	// videoPlayChan   channels.NativeChannel //<-chan []byte
-	// videoRecordChan channels.NativeChannel //<-chan []byte
+	firstPacket *videoPacket
+	lastPacket  *videoPacket
+	packetLen   int
 )
 
 type videoWgtT struct {
@@ -80,43 +87,38 @@ func (wgt *videoWgtT) clearMessage() {
 }
 
 func recordVideoCB() {
-	videoFilename := fmt.Sprintf("%s%ctello_vid_%s", settings.DataDir, filepath.Separator, time.Now().Format(time.RFC3339))
-	//videoConverter = exec.Command("bash", "-c", "ffmpeg -i <(arecord) -i - -r 60 -vcodec copy -acodec copy \""+videoFilename+".avi\"")
-	//videoConverter = exec.Command("ffmpeg", "-f", "pulse", "-i", "default", "-i", "-", "-r", "60", "-filter:v", "setpts=0.95*PTS", "-vcodec", "copy", "-acodec", "copy", videoFilename+".avi")
-	//videoConverter = exec.Command("ffmpeg", "-f", "pulse", "-i", "default", "-i", "-", "-r", "60", "-vcodec", "copy", "-acodec", "copy", videoFilename+".avi")
-	//videoConverter = exec.Command("ffmpeg", "-f", "pulse", "-i", "default", "-i", "-", "-r", "60", "-filter:a", "atempo=0.8", "-vcodec", "copy", videoFilename+".avi")
-	//videoConverter = exec.Command("ffmpeg", "-f", "pulse", "-i", "default", "-i", "-", "-r", "60", "-af", "aresample=async=1:first_pts=0", "-vcodec", "copy", videoFilename+".avi")
-	//videoConverter = exec.Command("ffmpeg", "-f", "pulse", "-itsoffset", "1.0", "-i", "default", "-r", "30", "-i", "-", "-af", "aresample=async=1:first_pts=0", "-vcodec", "copy", videoFilename+".avi")
-	videoConverter = exec.Command("ffmpeg", "-f", "pulse", "-i", "default", "-r", "30", "-i", "-", "-af", "aresample=async=1:first_pts=0", "-vcodec", "copy", videoFilename+".avi")
-
-	var err error
-
-	// videoFile, err = os.OpenFile(videoFilename+".h264", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
-	// if err != nil {
-	// 	messageDialog(win, gtk.MESSAGE_INFO, "Could not create video file.")
-	// 	return
-	// }
-	// videoWriter = bufio.NewWriter(videoFile)
-
-	videoWriter, err = videoConverter.StdinPipe()
-	if err != nil {
-		messageDialog(win, gtk.MESSAGE_INFO, "Could not prepare video converter.")
-		return
-	}
-
-	err = videoConverter.Start()
-	if err != nil {
-		messageDialog(win, gtk.MESSAGE_INFO, "Could not start video converter.")
-		return
-	}
-
-	// videoRecordChan = channels.NewNativeChannel(4096) // make(chan []byte, 4096)
-	// videoPlayChan = channels.NewNativeChannel(256)    // make(chan []byte, 256)
-	// channels.Tee(channels.Wrap(videoChan), videoPlayChan, videoRecordChan)
-
 	videoRecMu.Lock()
-	videoRecording = true
+	if !videoRecording {
+		videoFilename := fmt.Sprintf("%s%ctello_vid_%s", settings.DataDir, filepath.Separator, time.Now().Format(time.RFC3339))
+		videoConverter = exec.Command("ffmpeg", "-f", "pulse", "-i", "default", "-r", "30", "-i", "-", "-af", "aresample=async=1:first_pts=0", "-vcodec", "copy", videoFilename+".avi")
+
+		var err error
+
+		videoWriteRecMu.Lock()
+		videoWriter, err = videoConverter.StdinPipe()
+		videoWriteRecMu.Unlock()
+		if err != nil {
+			videoRecMu.Unlock()
+			messageDialog(win, gtk.MESSAGE_INFO, "Could not prepare video converter.")
+			return
+		}
+
+		err = videoConverter.Start()
+		if err != nil {
+			videoRecMu.Unlock()
+			messageDialog(win, gtk.MESSAGE_INFO, "Could not start video converter.")
+			return
+		}
+
+		firstPacket = nil
+		lastPacket = nil
+		packetLen = 0
+
+		videoRecording = true
+	}
 	videoRecMu.Unlock()
+
+	go videoWriterLoop()
 
 	menuBar.recVidItem.SetSensitive(false)
 	menuBar.stopRecVidItem.SetSensitive(true)
@@ -125,9 +127,14 @@ func recordVideoCB() {
 func stopRecordingVideoCB() {
 	videoRecMu.Lock()
 	videoRecording = false
-	videoRecMu.Unlock()
 
+	firstPacket = nil
+	lastPacket = nil
+	packetLen = 0
+
+	videoWriteRecMu.Lock()
 	videoWriter.Close()
+	videoWriteRecMu.Unlock()
 
 	videoConverter.Process.Signal(os.Interrupt)
 
@@ -144,6 +151,7 @@ func stopRecordingVideoCB() {
 	case <-videoConverterDone:
 		// Convertor exited before timeout
 	}
+	videoRecMu.Unlock()
 
 	menuBar.recVidItem.SetSensitive(true)
 	menuBar.stopRecVidItem.SetSensitive(false)
@@ -191,11 +199,26 @@ func customReader() ([]byte, int) {
 	if !more {
 		stopFeedImageChan <- true
 	}
-	videoRecMu.RLock()
+	videoRecMu.Lock()
 	if videoRecording {
-		go videoWriter.Write(pkt)
+		if packetLen < packetQueueLimit {
+			if lastPacket == nil {
+				lastPacket = new(videoPacket)
+				firstPacket = lastPacket
+			} else {
+				lastPacket.next = new(videoPacket)
+				lastPacket = lastPacket.next
+			}
+
+			lastPacket.next = nil
+			lastPacket.packet = pkt
+
+			packetLen++
+		} else {
+			log.Println("WARNING: Recording packet queue reached it's limit.")
+		}
 	}
-	videoRecMu.RUnlock()
+	videoRecMu.Unlock()
 	return pkt, len(pkt)
 }
 
@@ -205,6 +228,37 @@ func assert(i interface{}, err error) interface{} {
 	}
 
 	return i
+}
+
+func videoWriterLoop() {
+	for {
+		videoRecMu.Lock()
+
+		if !videoRecording {
+			videoRecMu.Unlock()
+			break
+		}
+
+		if firstPacket == nil {
+			videoRecMu.Unlock()
+			time.Sleep(5 * time.Millisecond)
+			continue
+		}
+
+		pkt := firstPacket.packet
+
+		firstPacket = firstPacket.next
+		if firstPacket == nil {
+			lastPacket = nil
+		}
+		packetLen--
+
+		videoRecMu.Unlock()
+
+		videoWriteRecMu.Lock()
+		videoWriter.Write(pkt)
+		videoWriteRecMu.Unlock()
+	}
 }
 
 //func (app *tdApp) videoListener() {
