@@ -31,6 +31,11 @@ const (
 	axLeftY
 	axRightX
 	axRightY
+
+	axSlowMode
+
+	axFlipX
+	axFlipY
 )
 
 const (
@@ -61,8 +66,10 @@ const (
 const (
 	ftHasThrowPalmButton = iota
 	ftHasSlowModeButton
+	ftHasSlowModeAxes
 	ftHasFlightSpeedButtons
 	ftHasFlipButtons
+	ftHasFlipAxes
 	ftHasPageSwitchButtons
 )
 
@@ -94,7 +101,7 @@ var (
 			Axes:   []int{axLeftX: 0, axLeftY: 1, axRightX: 2, axRightY: 3},
 			//Buttons: []uint{btnCross: 1, btnCircle: 2, btnTriangle: 3, btnSquare: 0, btnL1: 4, btnL2: 6, btnR1: 5, btnR2: 7},
 			Buttons:  []uint{btnLand: 1, btnTakeoff: 3, btnTakePhoto: 0, btnSetHome: 4, btnReturnHome: 5, btnCancelAuto: 11},
-			Features: []bool{ftHasThrowPalmButton: false, ftHasSlowModeButton: false, ftHasFlightSpeedButtons: false, ftHasFlipButtons: false, ftHasPageSwitchButtons: false},
+			Features: []bool{ftHasThrowPalmButton: false, ftHasSlowModeButton: false, ftHasSlowModeAxes: false, ftHasFlightSpeedButtons: false, ftHasFlipButtons: false, ftHasFlipAxes: false, ftHasPageSwitchButtons: false},
 		},
 		JoystickConfig{
 			Name:   "DualShock 4",
@@ -102,7 +109,7 @@ var (
 			Axes:   []int{axLeftX: 0, axLeftY: 1, axRightX: 2, axRightY: 3},
 			//Buttons: []uint{btnCross: 1, btnCircle: 2, btnTriangle: 3, btnSquare: 0, btnL1: 4, btnL2: 6, btnR1: 5, btnR2: 7},
 			Buttons:  []uint{btnLand: 1, btnTakeoff: 3, btnTakePhoto: 0, btnSetHome: 4, btnReturnHome: 5, btnCancelAuto: 11},
-			Features: []bool{ftHasThrowPalmButton: false, ftHasSlowModeButton: false, ftHasFlightSpeedButtons: false, ftHasFlipButtons: false, ftHasPageSwitchButtons: false},
+			Features: []bool{ftHasThrowPalmButton: false, ftHasSlowModeButton: false, ftHasSlowModeAxes: false, ftHasFlightSpeedButtons: false, ftHasFlipButtons: false, ftHasFlipAxes: false, ftHasPageSwitchButtons: false},
 		},
 		JoystickConfig{
 			Name:   "T-Flight Hotas X",
@@ -110,14 +117,14 @@ var (
 			Axes:   []int{axLeftX: 4, axLeftY: 2, axRightX: 0, axRightY: 1},
 			//Buttons: []uint{btnR1: 0, btnL1: 1, btnR3: 2, btnL3: 3, btnSquare: 4, btnCross: 5, btnCircle: 6, btnTriangle: 7, btnR2: 8, btnL2: 9},
 			Buttons:  []uint{btnTakePhoto: 4, btnLand: 5, btnTakeoff: 7, btnSetHome: 1, btnReturnHome: 0, btnCancelAuto: 12},
-			Features: []bool{ftHasThrowPalmButton: false, ftHasSlowModeButton: false, ftHasFlightSpeedButtons: false, ftHasFlipButtons: false, ftHasPageSwitchButtons: false},
+			Features: []bool{ftHasThrowPalmButton: false, ftHasSlowModeButton: false, ftHasSlowModeAxes: false, ftHasFlightSpeedButtons: false, ftHasFlipButtons: false, ftHasFlipAxes: false, ftHasPageSwitchButtons: false},
 		},
 		JoystickConfig{
 			Name:     "XBox 360", // TODO - Untested
 			JsType:   typeGameController,
 			Axes:     []int{axLeftX: 0, axLeftY: 1, axRightX: 4, axRightY: 5},
 			Buttons:  []uint{btnLand: 2, btnTakeoff: 3, btnTakePhoto: 0, btnSetHome: 4, btnReturnHome: 5, btnCancelAuto: 9},
-			Features: []bool{ftHasThrowPalmButton: false, ftHasSlowModeButton: false, ftHasFlightSpeedButtons: false, ftHasFlipButtons: false, ftHasPageSwitchButtons: false},
+			Features: []bool{ftHasThrowPalmButton: false, ftHasSlowModeButton: false, ftHasSlowModeAxes: false, ftHasFlightSpeedButtons: false, ftHasFlipButtons: false, ftHasFlipAxes: false, ftHasPageSwitchButtons: false},
 		},
 	}
 	jsKnownLinuxConfigs = []JoystickConfig{
@@ -126,26 +133,26 @@ var (
 			JsType:   typeGameController,
 			Axes:     []int{axLeftX: 0, axLeftY: 1, axRightX: 3, axRightY: 4},
 			Buttons:  []uint{btnLand: 0, btnTakeoff: 2, btnTakePhoto: 3, btnSetHome: 4, btnReturnHome: 5, btnCancelAuto: 11},
-			Features: []bool{ftHasThrowPalmButton: false, ftHasSlowModeButton: false, ftHasFlightSpeedButtons: false, ftHasFlipButtons: false, ftHasPageSwitchButtons: false},
+			Features: []bool{ftHasThrowPalmButton: false, ftHasSlowModeButton: false, ftHasSlowModeAxes: false, ftHasFlightSpeedButtons: false, ftHasFlipButtons: false, ftHasFlipAxes: false, ftHasPageSwitchButtons: false},
 		},
 		JoystickConfig{
 			Name:     "T-Flight Hotas X", // Seeems to be the same on Linux and Windows
 			JsType:   typeFlightController,
 			Axes:     []int{axLeftX: 4, axLeftY: 2, axRightX: 0, axRightY: 1},
 			Buttons:  []uint{btnTakePhoto: 4, btnLand: 5, btnTakeoff: 7, btnSetHome: 1, btnReturnHome: 0, btnCancelAuto: 12},
-			Features: []bool{ftHasThrowPalmButton: false, ftHasSlowModeButton: false, ftHasFlightSpeedButtons: false, ftHasFlipButtons: false, ftHasPageSwitchButtons: false},
+			Features: []bool{ftHasThrowPalmButton: false, ftHasSlowModeButton: false, ftHasSlowModeAxes: false, ftHasFlightSpeedButtons: false, ftHasFlipButtons: false, ftHasFlipAxes: false, ftHasPageSwitchButtons: false},
 		},
 		JoystickConfig{
 			Name:     "XBox 360", // TODO - Untested
 			JsType:   typeGameController,
 			Axes:     []int{axLeftX: 0, axLeftY: 1, axRightX: 4, axRightY: 5},
 			Buttons:  []uint{btnLand: 2, btnTakeoff: 3, btnTakePhoto: 0, btnSetHome: 4, btnReturnHome: 5, btnCancelAuto: 10},
-			Features: []bool{ftHasThrowPalmButton: false, ftHasSlowModeButton: false, ftHasFlightSpeedButtons: false, ftHasFlipButtons: false, ftHasPageSwitchButtons: false},
+			Features: []bool{ftHasThrowPalmButton: false, ftHasSlowModeButton: false, ftHasSlowModeAxes: false, ftHasFlightSpeedButtons: false, ftHasFlipButtons: false, ftHasFlipAxes: false, ftHasPageSwitchButtons: false},
 		},
 		JoystickConfig{
 			Name:   "Steam Controller (Linux kernel driver)", // Steam Controller mapping tested with Linux kernel driver added in Linux 4.18.
 			JsType: typeGameController,
-			Axes:   []int{axLeftX: 0, axLeftY: 1, axRightX: 2, axRightY: 3},
+			Axes:   []int{axLeftX: 2, axLeftY: 3, axRightX: 0, axRightY: 1}, // This controller has only single stick, so this mapping maps right stick on left (real) stick.
 			Buttons: []uint{
 				btnLand:       2,  // A
 				btnTakeoff:    5,  // Y
@@ -166,18 +173,154 @@ var (
 				btnFlipLeft:     19, // D-Left
 				btnFlipRight:    20, // D-Right
 
-				// video, track, profile, stats
-
 				btnStatsPage:        8,  // L2
 				btnTrackChartPage:   16, // BackR
 				btnProfileChartPage: 15, // BackL
 
-				// R3      = 14
-				// L3      = 13
-				// D-Touch  = 0
-				// R3-Touch = 1
+				// R3       = 14
+				// L3       = 13
+				// D-Touch  =  0
+				// R3-Touch =  1
 			},
-			Features: []bool{ftHasThrowPalmButton: true, ftHasSlowModeButton: true, ftHasFlightSpeedButtons: true, ftHasFlipButtons: true, ftHasPageSwitchButtons: true},
+			Features: []bool{
+				ftHasThrowPalmButton:    true,
+				ftHasSlowModeButton:     true,
+				ftHasSlowModeAxes:       false,
+				ftHasFlightSpeedButtons: true,
+				ftHasFlipButtons:        true,
+				ftHasFlipAxes:           false,
+				ftHasPageSwitchButtons:  true,
+			},
+		},
+		JoystickConfig{
+			Name:   "EVOLVEO Fighter F1 (Cable connection)",
+			JsType: typeGameController,
+			Axes: []int{
+				axLeftX:  0,
+				axLeftY:  1,
+				axRightX: 3,
+				axRightY: 4,
+
+				axSlowMode: 5,
+
+				axFlipX: 6,
+				axFlipY: 7,
+
+				// axL2 = 2
+			},
+			Buttons: []uint{
+				btnLand:       0,  // A
+				btnTakeoff:    3,  // Y
+				btnTakePhoto:  1,  // B
+				btnSetHome:    6,  // Select
+				btnReturnHome: 7,  // Start
+				btnCancelAuto: 10, // R3
+
+				btnThrowPalm: 2, // X
+
+				btnFlightModeSlow: 4, // L1
+				btnFlightModeFast: 5, // R1
+
+				// L3      =  9
+			},
+			Features: []bool{
+				ftHasThrowPalmButton:    true,
+				ftHasSlowModeButton:     false,
+				ftHasSlowModeAxes:       true,
+				ftHasFlightSpeedButtons: true,
+				ftHasFlipButtons:        false,
+				ftHasFlipAxes:           true,
+				ftHasPageSwitchButtons:  false,
+			},
+		},
+		JoystickConfig{
+			Name:   "EVOLVEO Fighter F1 (Wireless connection in Windows, Android or PS3 mode)",
+			JsType: typeGameController,
+			Axes: []int{
+				axLeftX:  0,
+				axLeftY:  1,
+				axRightX: 3,
+				axRightY: 4,
+
+				axSlowMode: 5,
+
+				// axL2 = 2
+			},
+			Buttons: []uint{
+				btnLand:       0,  // A
+				btnTakeoff:    2,  // Y
+				btnTakePhoto:  1,  // B
+				btnSetHome:    8,  // Select
+				btnReturnHome: 10, // Home
+				btnCancelAuto: 9,  // Start
+
+				btnThrowPalm: 3, // X
+
+				btnFlightModeSlow: 4, // L1
+				btnFlightModeFast: 5, // R1
+
+				btnFlipForward:  13, // D-Up
+				btnFlipBackward: 14, // D-Down
+				btnFlipLeft:     15, // D-Left
+				btnFlipRight:    16, // D-Right
+
+				// R3      = 12
+				// L3      = 11
+				// R2      =  7
+				// L2      =  6
+			},
+			Features: []bool{
+				ftHasThrowPalmButton:    true,
+				ftHasSlowModeButton:     false,
+				ftHasSlowModeAxes:       true,
+				ftHasFlightSpeedButtons: true,
+				ftHasFlipButtons:        true,
+				ftHasFlipAxes:           false,
+				ftHasPageSwitchButtons:  false,
+			},
+		},
+		JoystickConfig{
+			Name:   "EVOLVEO Fighter F1 (Bluetooth wireless connection in Android mode)",
+			JsType: typeGameController,
+			Axes: []int{
+				axLeftX:  0,
+				axLeftY:  1,
+				axRightX: 2,
+				axRightY: 3,
+
+				axSlowMode: 4,
+
+				axFlipX: 6,
+				axFlipY: 7,
+
+				// axL2 = 5
+			},
+			Buttons: []uint{
+				btnLand:       0,  // A
+				btnTakeoff:    4,  // Y
+				btnTakePhoto:  1,  // B
+				btnSetHome:    10, // Select
+				btnReturnHome: 11, // Start
+				btnCancelAuto: 14, // R3
+
+				btnThrowPalm: 3, // X
+
+				btnFlightModeSlow: 6, // L1
+				btnFlightModeFast: 7, // R1
+
+				// L3      = 13
+				// R2      =  9
+				// L2      =  8
+			},
+			Features: []bool{
+				ftHasThrowPalmButton:    true,
+				ftHasSlowModeButton:     false,
+				ftHasSlowModeAxes:       true,
+				ftHasFlightSpeedButtons: true,
+				ftHasFlipButtons:        false,
+				ftHasFlipAxes:           true,
+				ftHasPageSwitchButtons:  false,
+			},
 		},
 	}
 )
@@ -261,6 +404,8 @@ func readJoystick(test bool) {
 		jsState, prevState joystick.State
 		err                error
 
+		prevFlipX, prevFlipY int
+
 		updateTime int64
 	)
 
@@ -276,27 +421,27 @@ func readJoystick(test bool) {
 		}
 
 		if jsState.AxisData[jsConfig.Axes[axLeftX]] == 32768 {
-			sm.Rx = maxVal
+			sm.Lx = maxVal
 		} else {
-			sm.Rx = int16(jsState.AxisData[jsConfig.Axes[axLeftX]])
+			sm.Lx = int16(jsState.AxisData[jsConfig.Axes[axLeftX]])
 		}
 
 		if jsState.AxisData[jsConfig.Axes[axLeftY]] == 32768 {
-			sm.Ry = -maxVal
+			sm.Ly = -maxVal
 		} else {
-			sm.Ry = -int16(jsState.AxisData[jsConfig.Axes[axLeftY]])
+			sm.Ly = -int16(jsState.AxisData[jsConfig.Axes[axLeftY]])
 		}
 
 		if jsState.AxisData[jsConfig.Axes[axRightX]] == 32768 {
-			sm.Lx = maxVal
+			sm.Rx = maxVal
 		} else {
-			sm.Lx = int16(jsState.AxisData[jsConfig.Axes[axRightX]])
+			sm.Rx = int16(jsState.AxisData[jsConfig.Axes[axRightX]])
 		}
 
 		if jsState.AxisData[jsConfig.Axes[axRightY]] == 32768 {
-			sm.Ly = -maxVal
+			sm.Ry = -maxVal
 		} else {
-			sm.Ly = -int16(jsState.AxisData[jsConfig.Axes[axRightY]])
+			sm.Ry = -int16(jsState.AxisData[jsConfig.Axes[axRightY]])
 		}
 
 		// zero out values in dead zone
@@ -313,7 +458,13 @@ func readJoystick(test bool) {
 			sm.Ry = 0
 		}
 
-		if jsConfig.Features[ftHasSlowModeButton] && jsState.Buttons&(1<<jsConfig.Buttons[btnSlowMode]) != 0 {
+		if jsConfig.Features[ftHasSlowModeAxes] {
+			divider := (float32(jsState.AxisData[jsConfig.Axes[axSlowMode]]) / float32(maxVal)) + 2.0
+			sm.Lx = int16(float32(sm.Lx) / divider)
+			sm.Ly = int16(float32(sm.Ly) / divider)
+			sm.Rx = int16(float32(sm.Rx) / divider)
+			sm.Ry = int16(float32(sm.Ry) / divider)
+		} else if jsConfig.Features[ftHasSlowModeButton] && jsState.Buttons&(1<<jsConfig.Buttons[btnSlowMode]) != 0 {
 			sm.Lx /= 3
 			sm.Ly /= 3
 			sm.Rx /= 3
@@ -464,6 +615,42 @@ func readJoystick(test bool) {
 					drone.RightFlip()
 				}
 			}
+		} else if jsConfig.Features[ftHasFlipAxes] && len(prevState.AxisData) != 0 { // Make sure, that this is not the first loop.
+			flipX := jsState.AxisData[jsConfig.Axes[axFlipX]]
+			flipY := jsState.AxisData[jsConfig.Axes[axFlipY]]
+			trashold := maxVal / 2
+
+			if flipY < -trashold && prevFlipY >= -trashold {
+				if test {
+					log.Println("Flip forward button pressed")
+				} else {
+					drone.ForwardFlip()
+				}
+			}
+			if flipY > trashold && prevFlipY <= trashold {
+				if test {
+					log.Println("Flip backward button pressed")
+				} else {
+					drone.BackFlip()
+				}
+			}
+			if flipX < -trashold && prevFlipX >= -trashold {
+				if test {
+					log.Println("Flip left button pressed")
+				} else {
+					drone.LeftFlip()
+				}
+			}
+			if flipX > trashold && prevFlipX <= trashold {
+				if test {
+					log.Println("Flip right button pressed")
+				} else {
+					drone.RightFlip()
+				}
+			}
+
+			prevFlipX = flipX
+			prevFlipY = flipY
 		}
 
 		if jsConfig.Features[ftHasPageSwitchButtons] {
@@ -510,7 +697,11 @@ func readJoystick(test bool) {
 
 		prevState = jsState
 
-		time.Sleep(jsUpdatePeriod)
+		if test {
+			time.Sleep(250 * time.Millisecond)
+		} else {
+			time.Sleep(jsUpdatePeriod)
+		}
 	}
 }
 
